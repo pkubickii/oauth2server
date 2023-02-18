@@ -1,0 +1,12 @@
+html
+  head
+    title Client Registration
+  body
+    h1 Register to oauth2 server
+    form(action="/register", method="POST")
+      label(for="username") Username:
+      input(type="text", id="username", name="username", style="margin-left: 0.5rem")
+      label(for="password", style="margin-left: 1rem") Password:
+      input(type="password", id="password", name="password", style="margin-left: 0.5rem")
+      button(type="submit", style="margin-left: 1rem") Register
+      

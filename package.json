@@ -1,0 +1,21 @@
+{
+  "name": "oauth2server",
+  "version": "1.0.0",
+  "description": "oauth2 authorization server",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "pkubicki",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "mysql2": "^3.1.2",
+    "pug": "^3.0.2",
+    "supervisor": "^0.12.0"
+  }
+}
