@@ -1,9 +1,14 @@
 const { sign, verify } = require("jsonwebtoken");
 
-const createToken = (user) => {
+const createToken = (creds) => {
   const accessToken = sign(
-    { username: user.name, email: user.email, role: user.role },
-    "jwthardcodedsecretlol"
+    {
+      token_type: "Bearer",
+      sub: creds.subject,
+      scope: "create",
+    },
+    creds.secret,
+    { expiresIn: 3600 }
   );
 
   return accessToken;
