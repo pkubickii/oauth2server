@@ -1,0 +1,12 @@
+html
+  head
+    title Login to authorize app
+  body
+    h1 Login to authorize app
+    form(action="/login", method="POST")
+      label(for="username") Username:
+      input(type="text", id="username", name="username", style="margin-left: 0.5rem")
+      label(for="password", style="margin-left: 1rem") Password:
+      input(type="password", id="password", name="password", style="margin-left: 0.5rem")
+      button(type="submit", style="margin-left: 1rem") Register
+      
