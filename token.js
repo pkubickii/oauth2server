@@ -5,7 +5,7 @@ const createToken = (creds) => {
     {
       token_type: "Bearer",
       sub: creds.subject,
-      scope: "create",
+      scope: creds.scope,
     },
     creds.secret,
     { expiresIn: 3600 }
@@ -19,7 +19,7 @@ const createRefreshToken = (creds) => {
     {
       token_type: "Refresh",
       sub: creds.subject,
-      scope: "create",
+      scope: creds.scope,
     },
     creds.secret,
     { expiresIn: 3600 * 24 }

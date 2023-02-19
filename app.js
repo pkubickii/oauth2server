@@ -5,6 +5,7 @@ const {
   generateClientId,
   generateClientSecret,
   generateAuthCode,
+  checkAndReturnScopes,
 } = require("./credgen");
 const { executeQuery } = require("./db");
 const { createToken, createRefreshToken, validateToken } = require("./token");
@@ -120,14 +121,16 @@ app.post("/login", (req, res) => {
           //console.log(`query result: ${JSON.stringify(result)}`);
           const code = generateAuthCode();
           const iquery = `UPDATE user SET code='${code}' WHERE username='${username}';`;
-          executeQuery(iquery)
-            .then(() => {
-              console.log("Code saved.");
-            })
-            .catch((err) => {
-              console.log(err);
-              res.status(500).send("Code failure, try get another one.");
-            });
+          const iquery2 = `UPDATE user SET scope_req='${hiddenProps.scope}' WHERE username='${username}';`;
+          Promise.all([
+            executeQuery(iquery).then(() => console.log("Code saved.")),
+            executeQuery(iquery2).then(() =>
+              console.log("Requested scope saved.")
+            ),
+          ]).catch((err) => {
+            console.log(err);
+            res.status(500).send("Database failure, try get another one.");
+          });
           res.redirect(
             `${hiddenProps.redirect_uri}?code=${code}&scope=${hiddenProps.scope}&state=${hiddenProps.state}`
           );
@@ -184,13 +187,14 @@ function handleClientCredentialsGrant(req, res) {
         const creds = {
           subject: client_id,
           secret: client_secret,
+          scope: "admin",
         };
         const accessToken = createToken(creds);
         const response = {
           access_token: accessToken,
           token_type: "Bearer",
           expires_in: 3600,
-          scope: "create",
+          scope: creds.scope,
         };
         const iquery = `INSERT INTO token (token, revoked, sub, type) VALUES ('${accessToken}', 0, '${creds.subject}', 'Bearer');`;
         executeQuery(iquery)
@@ -236,13 +240,14 @@ function handlePasswordGrant(req, res) {
               const creds = {
                 subject: `${username}@${client_id}`,
                 secret: client_secret,
+                scope: result[0].scope,
               };
               const accessToken = createToken(creds);
               const response = {
                 access_token: accessToken,
                 token_type: "Bearer",
                 expires_in: 3600,
-                scope: "create",
+                scope: creds.scope,
               };
               const iquery = `INSERT INTO token (token, revoked, sub, type) VALUES ('${accessToken}', 0, '${creds.subject}', 'Bearer');`;
               executeQuery(iquery)
@@ -291,9 +296,15 @@ function handleAuthorizationCodeGrant(req, res) {
               res.status(400).send("unauthorized_client");
             } else {
               console.log(`query result: ${JSON.stringify(result)}`);
+              console.log(`result[0].scope: ${result[0].scope}`);
+              console.log(`result[0].scope_req: ${result[0].scope_req}`);
               const creds = {
                 subject: `${result[0].username}@${client_id}`,
                 secret: client_secret,
+                scope: checkAndReturnScopes(
+                  result[0].scope,
+                  result[0].scope_req
+                ),
               };
               const accessToken = createToken(creds);
               const refreshToken = createRefreshToken(creds);
@@ -301,7 +312,7 @@ function handleAuthorizationCodeGrant(req, res) {
                 access_token: accessToken,
                 token_type: "Bearer",
                 expires_in: 3600,
-                scope: "create",
+                scope: creds.scope,
                 refresh_token: refreshToken,
               };
               const uquery = `UPDATE user SET code=null WHERE username='${result[0].username}';`;
@@ -359,13 +370,14 @@ function handleRefreshTokenGrant(req, res) {
               const creds = {
                 subject: result[0].sub,
                 secret: client_secret,
+                scope: result[0].scope,
               };
               const accessToken = createToken(creds);
               const response = {
                 access_token: accessToken,
                 token_type: "Bearer",
                 expires_in: 3600,
-                scope: "create",
+                scope: creds.scope,
               };
               const uquery = `UPDATE token SET revoke=1 WHERE sub='${creds.subject}';`;
               const iquery = `INSERT INTO token (token, revoked, sub, type) VALUES ('${accessToken}', 0, '${creds.subject}', 'Bearer');`;
@@ -426,7 +438,7 @@ app.get("/check_token", (req, res) => {
       return validateToken(token, client_secret, res);
     })
     .then(() => {
-      console.log(`validateToken(lets go)`);
+      console.log(`validateToken()`);
     })
     .catch((err) => {
       console.log(err);
