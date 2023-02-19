@@ -111,10 +111,12 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/access_token", (req, res) => {
-  const { grant_type } = req.body;
+  const grant_type = req.body.hasOwnProperty("grant_type")
+    ? req.body.grant_type
+    : null;
   if (
     !req.body ||
-    !req.body.hasOwnProperty("grant_type") ||
+    !grant_type ||
     !req.body.hasOwnProperty("client_id") ||
     !req.body.hasOwnProperty("client_secret")
   ) {
@@ -129,8 +131,8 @@ app.post("/access_token", (req, res) => {
         } else {
           console.log(`query result: ${JSON.stringify(result)}`);
           const creds = {
-            client_id,
-            client_secret,
+            subject: client_id,
+            secret: client_secret,
           };
           const accessToken = createToken(creds);
           const response = {
