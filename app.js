@@ -10,6 +10,7 @@ const port = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
 app.set("views", "./views");
 app.set("view engine", "pug");
 
@@ -72,8 +73,7 @@ app.get("/login", (req, res) => {
   ) {
     res.status(400).send("invalid_request");
   } else {
-    //res.render("login");
-    res.json({
+    const hiddenProps = {
       client_id,
       redirect_uri,
       scope,
@@ -81,26 +81,44 @@ app.get("/login", (req, res) => {
       response_mode,
       state,
       nonce,
-    });
+    };
+    console.log(JSON.stringify(hiddenProps));
+    res.render("login", hiddenProps);
   }
 });
 
 app.post("/login", (req, res) => {
-  if (
-    !req.body.hasOwnProperty("username") ||
-    !req.body.hasOwnProperty("password")
-  ) {
+  const username = req.body.hasOwnProperty("username")
+    ? req.body.username
+    : null;
+  const password = req.body.hasOwnProperty("password")
+    ? req.body.password
+    : null;
+  if (!username || !password) {
     res.status(400).send("invalid_request");
   } else {
-    const query = `SELECT code FROM user WHERE username = '${username}'`;
+    const hiddenProps = {
+      client_id: req.body.client_id,
+      redirect_uri: req.body.redirect_uri,
+      scope: req.body.scope,
+      response_type: req.body.response_type,
+      response_mode: req.body.response_mode,
+      state: req.body.state,
+      nonce: req.body.nonce,
+    };
+    console.log(JSON.stringify(hiddenProps));
+    const query = `SELECT * FROM user WHERE username='${username}' AND password='${password}' AND client_id='${hiddenProps.client_id}'`;
     executeQuery(query)
       .then((result) => {
         if (result.length === 0) {
-          res.status(404).send("User not found");
+          res.status(400).send("invalid_user_credentials");
         } else {
-          const code = result[0].code;
           console.log(`query result: ${JSON.stringify(result)}`);
-          res.redirect(`${redirect_uri}${code}`);
+          const code = result[0].code;
+          console.log(`query result: ${code}`);
+          res.redirect(
+            `${hiddenProps.redirect_uri}?code=${code}&scope=${hiddenProps.scope}&state=${hiddenProps.state}`
+          );
         }
       })
       .catch((err) => {
