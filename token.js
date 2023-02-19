@@ -14,21 +14,31 @@ const createToken = (creds) => {
   return accessToken;
 };
 
-const validateToken = (req, res, next) => {
-  const accessToken = req.cookies["flypal-token"];
+const createRefreshToken = (creds) => {
+  const accessToken = sign(
+    {
+      token_type: "Refresh",
+      sub: creds.subject,
+      scope: "create",
+    },
+    creds.secret,
+    { expiresIn: 3600 * 24 }
+  );
 
-  if (!accessToken)
-    return res.status(200).json({ error: "User not Authenticated!" });
+  return accessToken;
+};
 
+const validateToken = (token, secret, res) => {
   try {
-    const validToken = verify(accessToken, "jwthardcodedsecretlol");
-    if (validToken) {
-      req.token = validToken;
-      next();
+    const decoded = verify(token, secret);
+    if (decoded.exp < Date.now() / 1000) {
+      return res.status(401).send("Token has expired");
     }
+    res.send("Token is valid and not expired");
   } catch (err) {
-    return res.status(400).json({ error: err });
+    console.log(err);
+    res.status(500).send("Token is not valid");
   }
 };
 
-module.exports = { createToken, validateToken };
+module.exports = { createToken, createRefreshToken, validateToken };
